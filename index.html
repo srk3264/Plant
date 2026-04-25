@@ -3,43 +3,45 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Project O - Tree Lens</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <title>Project O</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <main class="screen" aria-label="Tree Detection Screen">
-    <video id="camera" class="camera" autoplay playsinline muted></video>
-    <canvas id="overlay" class="overlay" aria-hidden="true"></canvas>
+  <main class="screen" aria-label="Tree screen">
+    <div class="viewport">
+      <div class="artboard">
+        <div class="tree-layer" aria-hidden="true">
+          <img class="tree-art" alt="" src="https://www.figma.com/api/mcp/asset/b113def2-6836-4f35-99f4-931da26930d9" />
+        </div>
 
-    <section class="hud">
-      <header class="topbar">
-        <p class="brand">Project O</p>
-        <p id="status" class="status">Camera not started</p>
-      </header>
+        <div class="content-wrap">
+          <div class="portrait-card" aria-hidden="true">
+            <img class="portrait-image" alt="" src="https://www.figma.com/api/mcp/asset/2ad55158-4750-48fb-83d2-691f408f9638" />
+            <span class="eye eye-left"></span>
+            <span class="eye eye-right"></span>
+            <span class="pupil pupil-left"></span>
+            <span class="pupil pupil-right"></span>
+            <span class="brow brow-left"></span>
+            <span class="brow brow-right"></span>
+            <span class="highlight highlight-left"></span>
+            <span class="highlight highlight-right"></span>
+            <span class="cheek cheek-left"></span>
+            <span class="cheek cheek-right"></span>
+          </div>
 
-      <div class="center-copy">
-        <h1>Point your camera at a tree</h1>
-        <p>When a tree or plant is detected, a chat bubble will appear.</p>
+          <button id="chatBubble" class="chat-bubble" type="button" aria-label="Open tree chat">
+            <span class="chat-icon" aria-hidden="true">
+              <img alt="" src="https://www.figma.com/api/mcp/asset/de40729f-e8f2-4eba-bd10-2d740b2bd9fb" />
+            </span>
+            <span class="chat-copy">It’s too windy today!</span>
+            <span class="chat-arrow" aria-hidden="true">
+              <img alt="" src="https://www.figma.com/api/mcp/asset/4e4544e4-5a70-409f-b25a-32c89313e788" />
+            </span>
+          </button>
+        </div>
       </div>
-
-      <footer class="actions">
-        <button id="startBtn" class="btn btn-primary" type="button">Start Camera</button>
-        <button id="demoBtn" class="btn btn-secondary" type="button">Demo Bubble</button>
-      </footer>
-    </section>
-
-    <button id="chatBubble" class="chat-bubble hidden" type="button" aria-label="Open tree chat">
-      <span class="chat-icon" aria-hidden="true">...</span>
-      <span>It's too windy today!</span>
-      <span class="chat-arrow" aria-hidden="true">></span>
-    </button>
+    </div>
   </main>
-
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
   <script src="./app.js"></script>
 </body>
 </html>
