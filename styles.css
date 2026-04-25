@@ -3,7 +3,7 @@
 }
 
 :root {
-  --bg: #000000;
+  --bg: #ffe4ab;
   --black: #000000;
   --card-border: rgba(0, 0, 0, 0.12);
   --bubble: #000000;
@@ -36,13 +36,6 @@ body {
   overflow-y: auto;
 }
 
-.camera-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background: #000;
-}
-
 .camera-feed {
   width: 100%;
   height: 100%;
@@ -54,7 +47,7 @@ body {
 .camera-fallback {
   position: absolute;
   left: 50%;
-  bottom: 28px;
+  bottom: 16px;
   transform: translateX(-50%);
   padding: 10px 12px;
   border-radius: 12px;
@@ -103,14 +96,23 @@ body {
 
 .content-wrap {
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: max(29px, env(safe-area-inset-bottom));
-  width: min(267.75px, calc(100vw - 32px));
+  left: 81px;
+  top: 400px;
+  width: 267.75px;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 24px;
   align-items: center;
+}
+
+.portrait-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 267.75 / 357;
+  border: 1px solid var(--card-border);
+  border-radius: 19.697px;
+  overflow: hidden;
+  background: #101010;
 }
 
 .chat-bubble {
