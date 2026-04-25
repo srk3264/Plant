@@ -8,27 +8,16 @@
 </head>
 <body>
   <main class="screen" aria-label="Tree screen">
-    <div class="tree-layer" aria-hidden="true">
-      <img class="tree-art" alt="" src="https://www.figma.com/api/mcp/asset/b113def2-6836-4f35-99f4-931da26930d9" />
+    <div class="camera-layer">
+      <video id="camera" class="camera-feed" autoplay playsinline muted></video>
+      <div class="camera-fallback" id="cameraFallback" hidden>
+        Camera unavailable. Check browser permissions.
+      </div>
     </div>
 
     <div class="viewport">
       <div class="artboard">
         <div class="content-wrap">
-          <div class="portrait-card" aria-hidden="true">
-            <img class="portrait-image" alt="" src="https://www.figma.com/api/mcp/asset/2ad55158-4750-48fb-83d2-691f408f9638" />
-            <span class="eye eye-left"></span>
-            <span class="eye eye-right"></span>
-            <span class="pupil pupil-left"></span>
-            <span class="pupil pupil-right"></span>
-            <span class="brow brow-left"></span>
-            <span class="brow brow-right"></span>
-            <span class="highlight highlight-left"></span>
-            <span class="highlight highlight-right"></span>
-            <span class="cheek cheek-left"></span>
-            <span class="cheek cheek-right"></span>
-          </div>
-
           <button id="chatBubble" class="chat-bubble" type="button" aria-label="Open tree chat">
             <span class="chat-icon" aria-hidden="true">
               <img alt="" src="https://www.figma.com/api/mcp/asset/de40729f-e8f2-4eba-bd10-2d740b2bd9fb" />
