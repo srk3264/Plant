@@ -10,7 +10,7 @@ const MOBILE_NET_MIN_CONFIDENCE = 0.4;
 const MOBILE_CONFIRM_WINDOW = 4;
 const MOBILE_CONFIRM_MIN_HITS = 3;
 
-let objectDetectorModel = null;
+let cocoModel = null;
 let mobileNetModel = null;
 let detectorReady = false;
 let detectInFlight = false;
@@ -82,7 +82,7 @@ async function loadModels() {
     return;
   }
 
-  objectDetectorModel = await cocoSsd.load();
+  cocoModel = await cocoSsd.load();
   mobileNetModel = await mobilenet.load();
   detectorReady = true;
 }
@@ -120,7 +120,7 @@ async function runDetection() {
 
   try {
     const [objectPredictions, imagePredictions] = await Promise.all([
-      objectDetectorModel.detect(cameraFeed, 10),
+      cocoModel.detect(cameraFeed, 10),
       mobileNetModel.classify(cameraFeed, 3)
     ]);
 
