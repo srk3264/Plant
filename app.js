@@ -107,7 +107,7 @@ function hasPlantLikeObject(predictions) {
   return predictions.some((entry) => {
     const className = entry.class.toLowerCase();
     const score = entry.score || 0;
-    return className.includes("bottle") && score >= OBJECT_MIN_CONFIDENCE;
+    return (className.includes("plant") || className.includes("potted")) && score >= OBJECT_MIN_CONFIDENCE;
   });
 }
 
