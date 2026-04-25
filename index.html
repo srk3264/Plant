@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project O - Tree Lens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="screen" aria-label="Tree Detection Screen">
+    <video id="camera" class="camera" autoplay playsinline muted></video>
+    <canvas id="overlay" class="overlay" aria-hidden="true"></canvas>
+
+    <section class="hud">
+      <header class="topbar">
+        <p class="brand">Project O</p>
+        <p id="status" class="status">Camera not started</p>
+      </header>
+
+      <div class="center-copy">
+        <h1>Point your camera at a tree</h1>
+        <p>When a tree or plant is detected, a chat bubble will appear.</p>
+      </div>
+
+      <footer class="actions">
+        <button id="startBtn" class="btn btn-primary" type="button">Start Camera</button>
+        <button id="demoBtn" class="btn btn-secondary" type="button">Demo Bubble</button>
+      </footer>
+    </section>
+
+    <button id="chatBubble" class="chat-bubble hidden" type="button" aria-label="Open tree chat">
+      <span class="chat-icon" aria-hidden="true">...</span>
+      <span>It's too windy today!</span>
+      <span class="chat-arrow" aria-hidden="true">></span>
+    </button>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
