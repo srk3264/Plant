@@ -4,13 +4,17 @@ const chatBubble = document.getElementById("chatBubble");
 const detectStatus = document.getElementById("detectStatus");
 
 const DETECTION_INTERVAL_MS = 900;
-const TREE_KEYWORDS = /(tree|trunk|plant|wood|bark|forest|palm)/i;
+const TREE_KEYWORDS = /(tree|trunk|bark|forest|woodland|palm tree|birch|oak|maple|conifer|pine)/i;
+const MOBILE_NET_MIN_CONFIDENCE = 0.4;
+const MOBILE_CONFIRM_WINDOW = 4;
+const MOBILE_CONFIRM_MIN_HITS = 3;
 
 let cocoModel = null;
 let mobileNetModel = null;
 let detectorReady = false;
 let detectInFlight = false;
 let lastDetectionLogKey = "";
+const mobileRecentHits = [];
 
 function setDetectStatus(message) {
   if (detectStatus) {
@@ -83,7 +87,19 @@ async function loadModels() {
 }
 
 function hasTreeKeywords(results) {
-  return results.some((entry) => TREE_KEYWORDS.test(entry.className) && entry.probability >= 0.18);
+  const matched = results.some((entry) => {
+    const labels = entry.className.split(",").map((label) => label.trim().toLowerCase());
+    const isTreeLike = labels.some((label) => TREE_KEYWORDS.test(label));
+    return isTreeLike && entry.probability >= MOBILE_NET_MIN_CONFIDENCE;
+  });
+
+  mobileRecentHits.push(matched ? 1 : 0);
+  if (mobileRecentHits.length > MOBILE_CONFIRM_WINDOW) {
+    mobileRecentHits.shift();
+  }
+
+  const hitCount = mobileRecentHits.reduce((sum, hit) => sum + hit, 0);
+  return hitCount >= MOBILE_CONFIRM_MIN_HITS;
 }
 
 function hasPlantLikeObject(predictions) {
@@ -117,10 +133,16 @@ async function runDetection() {
       lastDetectionLogKey = logKey;
     }
 
-    const detected = hasPlantLikeObject(objectPredictions) || hasTreeKeywords(imagePredictions);
+    const cocoDetected = hasPlantLikeObject(objectPredictions);
+    const mobileDetected = hasTreeKeywords(imagePredictions);
+    const detected = cocoDetected || mobileDetected;
 
     setBubbleReady(detected);
-    setDetectStatus(detected ? "Tree trunk detected" : "Scanning for tree trunk...");
+    if (detected) {
+      setDetectStatus(cocoDetected ? "Tree trunk detected (COCO)" : "Tree trunk likely (MobileNet)");
+    } else {
+      setDetectStatus("Scanning for tree trunk...");
+    }
   } catch (error) {
     console.error("Detection failed:", error);
     setDetectStatus("Detection temporarily unavailable");
