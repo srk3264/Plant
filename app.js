@@ -4,13 +4,14 @@ const chatBubble = document.getElementById("chatBubble");
 const detectStatus = document.getElementById("detectStatus");
 
 const DETECTION_INTERVAL_MS = 900;
-const OBJECT_MIN_CONFIDENCE = 0.35;
+const YOLO_CONFIDENCE = 0.4;
 const TREE_KEYWORDS = /(tree|trunk|bark|forest|woodland|palm tree|birch|oak|maple|conifer|pine)/i;
 const MOBILE_NET_MIN_CONFIDENCE = 0.4;
 const MOBILE_CONFIRM_WINDOW = 4;
 const MOBILE_CONFIRM_MIN_HITS = 3;
+const YOLO_PLANT_CLASSES = ['potted plant', 'plant', 'tree', 'flower pot', 'flower', 'leaf', 'leaves'];
 
-let cocoModel = null;
+let yoloModel = null;
 let mobileNetModel = null;
 let detectorReady = false;
 let detectInFlight = false;
@@ -82,7 +83,14 @@ async function loadModels() {
     return;
   }
 
-  cocoModel = await cocoSsd.load();
+  try {
+    yoloModel = new window.YOLO();
+    await yoloModel.load();
+  } catch (err) {
+    console.error('YOLOv5 load failed:', err);
+    setDetectStatus('YOLOv5 unavailable, using fallback');
+  }
+  
   mobileNetModel = await mobilenet.load();
   detectorReady = true;
 }
@@ -105,9 +113,10 @@ function hasTreeKeywords(results) {
 
 function hasPlantLikeObject(predictions) {
   return predictions.some((entry) => {
-    const className = entry.class.toLowerCase();
-    const score = entry.score || 0;
-    return (className.includes("plant") || className.includes("potted")) && score >= OBJECT_MIN_CONFIDENCE;
+    const className = entry.class ? entry.class.toLowerCase() : '';
+    const score = entry.confidence || entry.score || 0;
+    const isPlant = className.includes("plant") || className.includes("potted") || className.includes("tree") || className.includes("flower");
+    return isPlant && score >= YOLO_CONFIDENCE;
   });
 }
 
@@ -119,17 +128,29 @@ async function runDetection() {
   detectInFlight = true;
 
   try {
-    const [objectPredictions, imagePredictions] = await Promise.all([
-      cocoModel.detect(cameraFeed, 10),
-      mobileNetModel.classify(cameraFeed, 3)
-    ]);
+    let objectPredictions = [];
+    let imagePredictions = [];
+    
+    if (yoloModel) {
+      try {
+        objectPredictions = await yoloModel.predict(cameraFeed);
+      } catch (err) {
+        console.error('YOLOv5 inference error:', err);
+      }
+    }
+    
+    try {
+      imagePredictions = await mobileNetModel.classify(cameraFeed, 3);
+    } catch (err) {
+      console.error('MobileNet inference error:', err);
+    }
 
     const objectNames = objectPredictions.map((entry) => entry.class);
     const sceneNames = imagePredictions.map((entry) => entry.className);
     const logKey = `${objectNames.join("|")}__${sceneNames.join("|")}`;
 
     if (logKey !== lastDetectionLogKey) {
-      console.log("COCO-SSD objects:", objectNames.length ? objectNames : ["none"]);
+      console.log("YOLOv5 objects:", objectNames.length ? objectNames : ["none"]);
       console.log("MobileNet scene labels:", sceneNames.length ? sceneNames : ["none"]);
       lastDetectionLogKey = logKey;
     }
@@ -140,7 +161,7 @@ async function runDetection() {
 
     setBubbleReady(detected);
     if (detected) {
-      setDetectStatus(cocoDetected ? "Tree trunk detected (COCO)" : "Tree trunk likely (MobileNet)");
+      setDetectStatus(cocoDetected ? "Tree trunk detected (YOLOv5)" : "Tree trunk likely (MobileNet)");
     } else {
       setDetectStatus("Scanning for tree trunk...");
     }
