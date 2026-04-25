@@ -56,6 +56,20 @@ body {
   font-size: 13px;
 }
 
+.detect-status {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
 .viewport {
   position: absolute;
   inset: 0;
@@ -131,6 +145,14 @@ body {
   box-shadow: 0 8px 16px var(--glow);
   font: 400 16px/24px Inter, Arial, sans-serif;
   cursor: pointer;
+  opacity: 0.45;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.chat-bubble.ready {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .chat-icon,

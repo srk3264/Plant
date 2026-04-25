@@ -17,6 +17,7 @@
         <div class="content-wrap">
           <div class="portrait-card" aria-label="Camera card">
             <video id="camera" class="camera-feed" autoplay playsinline muted></video>
+            <p id="detectStatus" class="detect-status">Loading detector...</p>
             <div class="camera-fallback" id="cameraFallback" hidden>
               Camera unavailable. Check browser permissions.
             </div>
@@ -35,6 +36,9 @@
       </div>
     </div>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1"></script>
   <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
   <script src="./app.js"></script>
 </body>

@@ -1,6 +1,26 @@
 const cameraFeed = document.getElementById("camera");
 const cameraFallback = document.getElementById("cameraFallback");
 const chatBubble = document.getElementById("chatBubble");
+const detectStatus = document.getElementById("detectStatus");
+
+const DETECTION_INTERVAL_MS = 900;
+const TREE_KEYWORDS = /(tree|trunk|plant|wood|bark|forest|palm)/i;
+
+let cocoModel = null;
+let mobileNetModel = null;
+let detectorReady = false;
+let detectInFlight = false;
+let lastDetectionLogKey = "";
+
+function setDetectStatus(message) {
+  if (detectStatus) {
+    detectStatus.textContent = message;
+  }
+}
+
+function setBubbleReady(isReady) {
+  chatBubble.classList.toggle("ready", isReady);
+}
 
 function updateScale() {
   const artboardWidth = 402;
@@ -21,6 +41,7 @@ async function startCamera() {
     if (cameraFallback) {
       cameraFallback.hidden = false;
     }
+    setDetectStatus("Camera unsupported");
     return;
   }
 
@@ -38,16 +59,82 @@ async function startCamera() {
     if (cameraFallback) {
       cameraFallback.hidden = true;
     }
+    setDetectStatus("Loading AI models...");
+    await loadModels();
+    setDetectStatus("Scanning for tree trunk...");
+    window.setInterval(runDetection, DETECTION_INTERVAL_MS);
   } catch (error) {
     console.error("Camera access failed:", error);
     if (cameraFallback) {
       cameraFallback.hidden = false;
     }
+    setDetectStatus("Camera permission denied");
   }
 }
 
+async function loadModels() {
+  if (detectorReady) {
+    return;
+  }
+
+  cocoModel = await cocoSsd.load();
+  mobileNetModel = await mobilenet.load();
+  detectorReady = true;
+}
+
+function hasTreeKeywords(results) {
+  return results.some((entry) => TREE_KEYWORDS.test(entry.className) && entry.probability >= 0.18);
+}
+
+function hasPlantLikeObject(predictions) {
+  return predictions.some((entry) => {
+    const className = entry.class.toLowerCase();
+    const score = entry.score || 0;
+    return (className.includes("plant") || className.includes("potted")) && score >= 0.45;
+  });
+}
+
+async function runDetection() {
+  if (!detectorReady || detectInFlight || !cameraFeed || cameraFeed.readyState < 2) {
+    return;
+  }
+
+  detectInFlight = true;
+
+  try {
+    const [objectPredictions, imagePredictions] = await Promise.all([
+      cocoModel.detect(cameraFeed, 10),
+      mobileNetModel.classify(cameraFeed, 3)
+    ]);
+
+    const objectNames = objectPredictions.map((entry) => entry.class);
+    const sceneNames = imagePredictions.map((entry) => entry.className);
+    const logKey = `${objectNames.join("|")}__${sceneNames.join("|")}`;
+
+    if (logKey !== lastDetectionLogKey) {
+      console.log("COCO-SSD objects:", objectNames.length ? objectNames : ["none"]);
+      console.log("MobileNet scene labels:", sceneNames.length ? sceneNames : ["none"]);
+      lastDetectionLogKey = logKey;
+    }
+
+    const detected = hasPlantLikeObject(objectPredictions) || hasTreeKeywords(imagePredictions);
+
+    setBubbleReady(detected);
+    setDetectStatus(detected ? "Tree trunk detected" : "Scanning for tree trunk...");
+  } catch (error) {
+    console.error("Detection failed:", error);
+    setDetectStatus("Detection temporarily unavailable");
+  } finally {
+    detectInFlight = false;
+  }
+}
+
+setBubbleReady(false);
 startCamera();
 
 chatBubble.addEventListener("click", () => {
+  if (!chatBubble.classList.contains("ready")) {
+    return;
+  }
   window.location.href = "./chat.html";
 });
