@@ -4,12 +4,13 @@ const chatBubble = document.getElementById("chatBubble");
 const detectStatus = document.getElementById("detectStatus");
 
 const DETECTION_INTERVAL_MS = 900;
+const OBJECT_MIN_CONFIDENCE = 0.35;
 const TREE_KEYWORDS = /(tree|trunk|bark|forest|woodland|palm tree|birch|oak|maple|conifer|pine)/i;
 const MOBILE_NET_MIN_CONFIDENCE = 0.4;
 const MOBILE_CONFIRM_WINDOW = 4;
 const MOBILE_CONFIRM_MIN_HITS = 3;
 
-let cocoModel = null;
+let objectDetectorModel = null;
 let mobileNetModel = null;
 let detectorReady = false;
 let detectInFlight = false;
@@ -81,7 +82,7 @@ async function loadModels() {
     return;
   }
 
-  cocoModel = await cocoSsd.load();
+  objectDetectorModel = await cocoSsd.load();
   mobileNetModel = await mobilenet.load();
   detectorReady = true;
 }
@@ -106,7 +107,7 @@ function hasPlantLikeObject(predictions) {
   return predictions.some((entry) => {
     const className = entry.class.toLowerCase();
     const score = entry.score || 0;
-    return className.includes("bottle") && score >= 0.45;
+    return className.includes("bottle") && score >= OBJECT_MIN_CONFIDENCE;
   });
 }
 
@@ -119,7 +120,7 @@ async function runDetection() {
 
   try {
     const [objectPredictions, imagePredictions] = await Promise.all([
-      cocoModel.detect(cameraFeed, 10),
+      objectDetectorModel.detect(cameraFeed, 10),
       mobileNetModel.classify(cameraFeed, 3)
     ]);
 
