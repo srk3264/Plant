@@ -128,7 +128,7 @@ body {
   border-radius: 19.697px;
   overflow: hidden;
   background: #101010;
-  box-shadow: 0 8px 16px var(--glow);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.12);
 }
 
 .chat-bubble {
