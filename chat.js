@@ -113,6 +113,11 @@ async function sendToBackend(userMessage) {
   }
 
   const payload = await response.json();
+  if (payload?.context?.weather) {
+    console.log("Weather:", payload.context.weather);
+  } else {
+    console.log("Weather:", "unavailable");
+  }
   return payload.reply || "No response returned.";
 }
 
@@ -145,7 +150,7 @@ chatForm.addEventListener("submit", async (event) => {
   }
 });
 
-appendMessage("assistant", "It's too windy, today!");
+appendMessage("assistant", "Ask me anything. I will use your location, weather, and local headlines when available.");
 appendMessage("user", "That's true tho");
 detectLocation();
 chatInput.focus();
