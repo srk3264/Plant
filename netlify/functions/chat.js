@@ -180,7 +180,8 @@ async function getWeather(latitude, longitude) {
     temperatureC: current.temperature_2m,
     windKmh: current.wind_speed_10m,
     weatherCode: current.weather_code,
-    observedAt: current.time
+    observedAt: current.time,
+    timezone: payload?.timezone || null
   };
 }
 
@@ -234,6 +235,9 @@ function buildSystemPrompt(context) {
   const weatherLine = context.weather
     ? `${context.weather.temperatureC} C, wind ${context.weather.windKmh} km/h, code ${context.weather.weatherCode}`
     : "Weather unavailable";
+  const localTimeLine = context.weather?.observedAt
+    ? `${context.weather.observedAt}${context.weather.timezone ? ` (${context.weather.timezone})` : ""}`
+    : "Local time unavailable";
 
   const newsLine = Array.isArray(context.news) && context.news.length
     ? context.news.map((item, idx) => `${idx + 1}. ${item}`).join("\n")
@@ -245,6 +249,7 @@ function buildSystemPrompt(context) {
     `Location: ${locationLine}`,
     `Coordinates: ${coordinates}`,
     `Weather: ${weatherLine}`,
+    `Local time: ${localTimeLine}`,
     "Local headlines:",
     newsLine
   ].join("\n");
