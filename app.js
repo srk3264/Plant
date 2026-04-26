@@ -29,8 +29,10 @@ function setBubbleReady(isReady) {
 
 function updateScale() {
   const artboardWidth = 402;
+  const artboardHeight = 874;
   const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
-  const scale = Math.min(1, viewportWidth / artboardWidth);
+  const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const scale = Math.min(1, viewportWidth / artboardWidth, viewportHeight / artboardHeight);
   document.documentElement.style.setProperty("--artboard-scale", String(scale));
 }
 
