@@ -240,15 +240,8 @@ function buildSystemPrompt(context) {
     : "No local headlines available";
 
   return [
-    "You are Project O's local context assistant.",
     "Answer in 2-4 short sentences, practical and friendly.",
     "Use location, weather, and local headlines when relevant.",
-    "If context is missing, state that briefly and still help.",
-    "If coordinates are present, do not say location is unavailable.",
-    "If place-name reverse geocoding is unavailable, do not claim a specific city/state by guesswork.",
-    "Avoid slang or filler phrasing such as 'tho'.",
-    "Never invent exact numbers if unavailable.",
-    "",
     `Location: ${locationLine}`,
     `Coordinates: ${coordinates}`,
     `Weather: ${weatherLine}`,
