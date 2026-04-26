@@ -10,6 +10,7 @@ const APP_CONTEXT = {
 
 const LEFT_TAIL_ASSET = "https://www.figma.com/api/mcp/asset/ed36b1a3-dcb5-4f63-91a1-60ca9b4e7bd4";
 const RIGHT_TAIL_ASSET = "https://www.figma.com/api/mcp/asset/15dec776-6b91-4e12-9037-33857dcbb96a";
+const OPEN_METEO_WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 
 function appendMessage(kind, text) {
   if (kind === "status") {
@@ -55,14 +56,52 @@ function withSendingState(isSending) {
   chatInput.disabled = isSending;
 }
 
-function detectLocation() {
+function setMessageText(messageNode, text) {
+  const bubble = messageNode?.querySelector(".chat-chip");
+  if (bubble) {
+    bubble.textContent = text;
+  }
+}
+
+async function fetchLiveWeather(latitude, longitude) {
+  const url = new URL(OPEN_METEO_WEATHER_URL);
+  url.searchParams.set("latitude", String(latitude));
+  url.searchParams.set("longitude", String(longitude));
+  url.searchParams.set("timezone", "auto");
+  url.searchParams.set("current", "temperature_2m,wind_speed_10m");
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = await response.json();
+  const current = payload?.current;
+  if (!current) {
+    return null;
+  }
+
+  const temperature = Number(current.temperature_2m);
+  const windSpeed = Number(current.wind_speed_10m);
+  if (!Number.isFinite(temperature) || !Number.isFinite(windSpeed)) {
+    return null;
+  }
+
+  return {
+    temperatureC: Math.round(temperature),
+    windKmh: Math.round(windSpeed)
+  };
+}
+
+function detectLocation(welcomeMessageNode) {
   if (!navigator.geolocation) {
     appendMessage("status", "Location access is unavailable. Chat will run without local context.");
+    setMessageText(welcomeMessageNode, "I can still help with weather context when location is available.");
     return;
   }
 
   navigator.geolocation.getCurrentPosition(
-    (position) => {
+    async (position) => {
       APP_CONTEXT.location = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
@@ -70,10 +109,26 @@ function detectLocation() {
         timestamp: position.timestamp
       };
       console.log("Geolocation:", APP_CONTEXT.location);
+
+      try {
+        const liveWeather = await fetchLiveWeather(APP_CONTEXT.location.latitude, APP_CONTEXT.location.longitude);
+        if (liveWeather) {
+          setMessageText(
+            welcomeMessageNode,
+            `Right now it's ${liveWeather.temperatureC}°C with winds around ${liveWeather.windKmh} km/h.`
+          );
+          return;
+        }
+      } catch (error) {
+        console.warn("Live weather unavailable:", error);
+      }
+
+      setMessageText(welcomeMessageNode, "I have your location. Ask me for current weather and local headlines.");
     },
     (error) => {
       console.warn("Geolocation unavailable:", error);
       appendMessage("status", "Location permission was denied. You can still chat without local context.");
+      setMessageText(welcomeMessageNode, "I can still help with weather context when location is available.");
     },
     {
       enableHighAccuracy: true,
@@ -152,6 +207,6 @@ chatForm.addEventListener("submit", async (event) => {
   }
 });
 
-appendMessage("assistant", "Ask me anything. I can use your location and weather when available.");
-detectLocation();
+const welcomeMessageNode = appendMessage("assistant", "Checking your local weather...");
+detectLocation(welcomeMessageNode);
 chatInput.focus();
