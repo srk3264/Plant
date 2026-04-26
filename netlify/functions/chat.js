@@ -186,7 +186,7 @@ async function getWeather(latitude, longitude) {
 
 async function getLocalNews(locationMeta) {
   const locationTerm = locationMeta?.city || locationMeta?.admin1 || locationMeta?.country || "local area";
-  const query = encodeURIComponent(`${locationTerm} weather environment`);
+  const query = encodeURIComponent(`${locationTerm}`);
   const rssUrl = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
 
   const response = await fetch(rssUrl, {
@@ -235,10 +235,14 @@ function buildSystemPrompt(context) {
     ? `${context.weather.temperatureC} C, wind ${context.weather.windKmh} km/h, code ${context.weather.weatherCode}`
     : "Weather unavailable";
 
+  const newsLine = Array.isArray(context.news) && context.news.length
+    ? context.news.map((item, idx) => `${idx + 1}. ${item}`).join("\n")
+    : "No local headlines available";
+
   return [
     "You are Project O's local context assistant.",
     "Answer in 2-4 short sentences, practical and friendly.",
-    "Use location and weather when relevant.",
+    "Use location, weather, and local headlines when relevant.",
     "If context is missing, state that briefly and still help.",
     "If coordinates are present, do not say location is unavailable.",
     "If place-name reverse geocoding is unavailable, do not claim a specific city/state by guesswork.",
@@ -247,7 +251,9 @@ function buildSystemPrompt(context) {
     "",
     `Location: ${locationLine}`,
     `Coordinates: ${coordinates}`,
-    `Weather: ${weatherLine}`
+    `Weather: ${weatherLine}`,
+    "Local headlines:",
+    newsLine
   ].join("\n");
 }
 
