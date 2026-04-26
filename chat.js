@@ -115,6 +115,11 @@ async function sendToBackend(userMessage) {
   }
 
   const payload = await response.json();
+  if (payload?.context?.locationMeta) {
+    console.log("Reverse geocode locationMeta:", payload.context.locationMeta);
+  } else {
+    console.log("Reverse geocode locationMeta:", "unavailable");
+  }
   if (payload?.context?.weather) {
     console.log("Weather:", payload.context.weather);
   } else {

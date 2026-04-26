@@ -64,16 +64,40 @@ async function reverseGeocode(latitude, longitude) {
   url.searchParams.set("language", "en");
   url.searchParams.set("format", "json");
 
+  console.log("Reverse geocode request:", {
+    latitude,
+    longitude,
+    url: url.toString()
+  });
+
   const response = await fetch(url);
   if (!response.ok) {
+    console.warn("Reverse geocode failed:", {
+      status: response.status,
+      statusText: response.statusText
+    });
     return null;
   }
 
   const payload = await response.json();
   const firstResult = payload?.results?.[0];
   if (!firstResult) {
+    console.warn("Reverse geocode returned no results", {
+      resultCount: Array.isArray(payload?.results) ? payload.results.length : 0,
+      latitude,
+      longitude
+    });
     return null;
   }
+
+  console.log("Reverse geocode result:", {
+    name: firstResult.name,
+    admin1: firstResult.admin1,
+    country: firstResult.country,
+    countryCode: firstResult.country_code,
+    latitude: firstResult.latitude,
+    longitude: firstResult.longitude
+  });
 
   return {
     city: firstResult.name || null,
