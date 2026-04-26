@@ -9,13 +9,39 @@ const APP_CONTEXT = {
   conversation: []
 };
 
+const LEFT_TAIL_ASSET = "https://www.figma.com/api/mcp/asset/ed36b1a3-dcb5-4f63-91a1-60ca9b4e7bd4";
+const RIGHT_TAIL_ASSET = "https://www.figma.com/api/mcp/asset/15dec776-6b91-4e12-9037-33857dcbb96a";
+
 function appendMessage(kind, text) {
-  const message = document.createElement("article");
-  message.className = `chat-message ${kind}`;
-  message.textContent = text;
-  chatMessages.appendChild(message);
+  if (kind === "status") {
+    const status = document.createElement("article");
+    status.className = "chat-status";
+    status.textContent = text;
+    chatMessages.appendChild(status);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return status;
+  }
+
+  const row = document.createElement("article");
+  row.className = `message-row ${kind}`;
+
+  const bubble = document.createElement("div");
+  bubble.className = `chat-chip ${kind}`;
+  bubble.textContent = text;
+
+  const tail = document.createElement("div");
+  tail.className = "chat-tail";
+  const tailImage = document.createElement("img");
+  tailImage.alt = "";
+  tailImage.src = kind === "assistant" ? LEFT_TAIL_ASSET : RIGHT_TAIL_ASSET;
+  tail.appendChild(tailImage);
+
+  row.appendChild(bubble);
+  row.appendChild(tail);
+
+  chatMessages.appendChild(row);
   chatMessages.scrollTop = chatMessages.scrollHeight;
-  return message;
+  return row;
 }
 
 function setLocationStatus(text) {
@@ -51,9 +77,11 @@ function detectLocation() {
         accuracy: position.coords.accuracy,
         timestamp: position.timestamp
       };
+      console.log("Geolocation:", APP_CONTEXT.location);
       setLocationStatus("Location ready for local weather/news context.");
     },
-    () => {
+    (error) => {
+      console.warn("Geolocation unavailable:", error);
       setLocationStatus("Location denied. Using no-location mode.");
       appendMessage("status", "Location permission was denied. You can still chat without local context.");
     },
@@ -117,6 +145,7 @@ chatForm.addEventListener("submit", async (event) => {
   }
 });
 
-appendMessage("assistant", "Hi, I can answer with local context once weather/news wiring is done. Ask me anything to test chat flow.");
+appendMessage("assistant", "It's too windy, today!");
+appendMessage("user", "That's true tho");
 detectLocation();
 chatInput.focus();
