@@ -15,12 +15,8 @@
     <div class="viewport">
       <div class="artboard">
         <div class="content-wrap">
-          <div class="portrait-card" aria-label="Camera card">
-            <video id="camera" class="camera-feed" autoplay playsinline muted></video>
-            <p id="detectStatus" class="detect-status">Loading detector...</p>
-            <div class="camera-fallback" id="cameraFallback" hidden>
-              Camera unavailable. Check browser permissions.
-            </div>
+          <div class="portrait-card" aria-label="Tree portrait card">
+            <img class="portrait-image" alt="" src="https://www.figma.com/api/mcp/asset/2ad55158-4750-48fb-83d2-691f408f9638" />
           </div>
 
           <button id="chatBubble" class="chat-bubble" type="button" aria-label="Open tree chat">
@@ -36,9 +32,6 @@
       </div>
     </div>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1"></script>
   <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
   <script src="./app.js"></script>
 </body>

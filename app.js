@@ -42,7 +42,13 @@ if (window.visualViewport) {
 }
 
 async function startCamera() {
-  if (!cameraFeed || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  if (!cameraFeed) {
+    setDetectStatus("");
+    setBubbleReady(true);
+    return;
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     if (cameraFallback) {
       cameraFallback.hidden = false;
     }
