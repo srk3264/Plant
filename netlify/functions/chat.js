@@ -1,6 +1,7 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPEN_METEO_WEATHER_URL = "https://api.open-meteo.com/v1/forecast";
 const OPEN_METEO_REVERSE_GEOCODE_URL = "https://geocoding-api.open-meteo.com/v1/reverse";
+const BDC_REVERSE_GEOCODE_URL = "https://api.bigdatacloud.net/data/reverse-geocode-client";
 
 const DEFAULT_MODEL = "nvidia/nemotron-3-super-120b-a12b:free";
 
@@ -107,6 +108,56 @@ async function reverseGeocode(latitude, longitude) {
   };
 }
 
+async function reverseGeocodeFallback(latitude, longitude) {
+  const url = new URL(BDC_REVERSE_GEOCODE_URL);
+  url.searchParams.set("latitude", String(latitude));
+  url.searchParams.set("longitude", String(longitude));
+  url.searchParams.set("localityLanguage", "en");
+
+  console.log("Reverse geocode fallback request:", {
+    latitude,
+    longitude,
+    url: url.toString()
+  });
+
+  const response = await fetch(url);
+  if (!response.ok) {
+    console.warn("Reverse geocode fallback failed:", {
+      status: response.status,
+      statusText: response.statusText
+    });
+    return null;
+  }
+
+  const payload = await response.json();
+  const city = payload?.city || payload?.locality || payload?.principalSubdivision || null;
+  const admin1 = payload?.principalSubdivision || null;
+  const country = payload?.countryName || null;
+  const countryCode = payload?.countryCode || null;
+
+  if (!city && !admin1 && !country) {
+    console.warn("Reverse geocode fallback returned no usable locality", {
+      latitude,
+      longitude
+    });
+    return null;
+  }
+
+  console.log("Reverse geocode fallback result:", {
+    city,
+    admin1,
+    country,
+    countryCode
+  });
+
+  return {
+    city,
+    admin1,
+    country,
+    countryCode
+  };
+}
+
 async function getWeather(latitude, longitude) {
   const url = new URL(OPEN_METEO_WEATHER_URL);
   url.searchParams.set("latitude", String(latitude));
@@ -184,23 +235,19 @@ function buildSystemPrompt(context) {
     ? `${context.weather.temperatureC} C, wind ${context.weather.windKmh} km/h, code ${context.weather.weatherCode}`
     : "Weather unavailable";
 
-  const newsLine = context.news.length
-    ? context.news.map((item, idx) => `${idx + 1}. ${item}`).join("\n")
-    : "No local headlines available";
-
   return [
     "You are Project O's local context assistant.",
     "Answer in 2-4 short sentences, practical and friendly.",
-    "Use location, weather, and local headlines when relevant.",
+    "Use location and weather when relevant.",
     "If context is missing, state that briefly and still help.",
     "If coordinates are present, do not say location is unavailable.",
+    "If place-name reverse geocoding is unavailable, do not claim a specific city/state by guesswork.",
+    "Avoid slang or filler phrasing such as 'tho'.",
     "Never invent exact numbers if unavailable.",
     "",
     `Location: ${locationLine}`,
     `Coordinates: ${coordinates}`,
-    `Weather: ${weatherLine}`,
-    "Local headlines:",
-    newsLine
+    `Weather: ${weatherLine}`
   ].join("\n");
 }
 
@@ -244,6 +291,10 @@ exports.handler = async (event) => {
         reverseGeocode(latitude, longitude),
         getWeather(latitude, longitude)
       ]);
+
+      if (!locationMeta) {
+        locationMeta = await reverseGeocodeFallback(latitude, longitude);
+      }
     } catch {
       // Keep chat functional even when context providers fail.
     }

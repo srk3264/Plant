@@ -2,7 +2,6 @@ const chatMessages = document.getElementById("chatMessages");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
 const chatSend = document.getElementById("chatSend");
-const locationStatus = document.getElementById("locationStatus");
 
 const APP_CONTEXT = {
   location: null,
@@ -44,12 +43,6 @@ function appendMessage(kind, text) {
   return row;
 }
 
-function setLocationStatus(text) {
-  if (locationStatus) {
-    locationStatus.textContent = text;
-  }
-}
-
 function addConversation(role, content) {
   APP_CONTEXT.conversation.push({ role, content });
   if (APP_CONTEXT.conversation.length > 12) {
@@ -64,7 +57,6 @@ function withSendingState(isSending) {
 
 function detectLocation() {
   if (!navigator.geolocation) {
-    setLocationStatus("Location unavailable in this browser.");
     appendMessage("status", "Location access is unavailable. Chat will run without local context.");
     return;
   }
@@ -78,11 +70,9 @@ function detectLocation() {
         timestamp: position.timestamp
       };
       console.log("Geolocation:", APP_CONTEXT.location);
-      setLocationStatus("Location ready for local weather/news context.");
     },
     (error) => {
       console.warn("Geolocation unavailable:", error);
-      setLocationStatus("Location denied. Using no-location mode.");
       appendMessage("status", "Location permission was denied. You can still chat without local context.");
     },
     {
@@ -119,6 +109,11 @@ async function sendToBackend(userMessage) {
     console.log("Reverse geocode locationMeta:", payload.context.locationMeta);
   } else {
     console.log("Reverse geocode locationMeta:", "unavailable");
+  }
+  if (Array.isArray(payload?.context?.news) && payload.context.news.length > 0) {
+    console.log("News:", payload.context.news);
+  } else {
+    console.log("News:", "unavailable");
   }
   if (payload?.context?.weather) {
     console.log("Weather:", payload.context.weather);
@@ -157,7 +152,6 @@ chatForm.addEventListener("submit", async (event) => {
   }
 });
 
-appendMessage("assistant", "Ask me anything. I will use your location, weather, and local headlines when available.");
-appendMessage("user", "That's true tho");
+appendMessage("assistant", "Ask me anything. I can use your location and weather when available.");
 detectLocation();
 chatInput.focus();
