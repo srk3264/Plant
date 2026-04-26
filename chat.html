@@ -4,34 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Project O - Chat</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #fff;
-      color: #111;
-    }
-
-    a {
-      color: inherit;
-      text-underline-offset: 4px;
-    }
-
-    main {
-      padding: 24px;
-      max-width: 560px;
-      text-align: center;
-    }
-  </style>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <main>
-    <h1>Chat Screen Placeholder</h1>
-    <p>The first screen is implemented. Next, we can wire the full chat UI and API context flow here.</p>
-    <p><a href="./index.html">Back to camera</a></p>
+  <main class="chat-screen" aria-label="Local context chat screen">
+    <header class="chat-header">
+      <a class="chat-back" href="./index.html" aria-label="Back to camera">
+        <span aria-hidden="true">&larr;</span>
+        <span>Back</span>
+      </a>
+      <p id="locationStatus" class="location-status">Detecting location...</p>
+    </header>
+
+    <section id="chatMessages" class="chat-messages" aria-live="polite"></section>
+
+    <form id="chatForm" class="chat-form" autocomplete="off">
+      <label class="sr-only" for="chatInput">Ask about local weather and news</label>
+      <input
+        id="chatInput"
+        class="chat-input"
+        type="text"
+        maxlength="500"
+        placeholder="Ask about weather, local updates, or anything else..."
+        required
+      />
+      <button id="chatSend" class="chat-send" type="submit">Send</button>
+    </form>
   </main>
+
+  <script src="./chat.js"></script>
 </body>
 </html>
