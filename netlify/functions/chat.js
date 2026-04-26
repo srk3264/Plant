@@ -143,10 +143,18 @@ function toOpenRouterHistory(history) {
     .filter((item) => item.content.trim().length > 0);
 }
 
+function formatCoordinates(latitude, longitude) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return "unavailable";
+  }
+  return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+}
+
 function buildSystemPrompt(context) {
+  const coordinates = formatCoordinates(context.latitude, context.longitude);
   const locationLine = context.locationMeta
-    ? `${context.locationMeta.city || "Unknown city"}, ${context.locationMeta.country || "Unknown country"}`
-    : "Location unavailable";
+    ? `${context.locationMeta.city || context.locationMeta.admin1 || "Unknown place"}, ${context.locationMeta.country || "Unknown country"}`
+    : `Coordinates available (${coordinates})`;
 
   const weatherLine = context.weather
     ? `${context.weather.temperatureC} C, wind ${context.weather.windKmh} km/h, code ${context.weather.weatherCode}`
@@ -161,9 +169,11 @@ function buildSystemPrompt(context) {
     "Answer in 2-4 short sentences, practical and friendly.",
     "Use location, weather, and local headlines when relevant.",
     "If context is missing, state that briefly and still help.",
+    "If coordinates are present, do not say location is unavailable.",
     "Never invent exact numbers if unavailable.",
     "",
     `Location: ${locationLine}`,
+    `Coordinates: ${coordinates}`,
     `Weather: ${weatherLine}`,
     "Local headlines:",
     newsLine
@@ -221,8 +231,23 @@ exports.handler = async (event) => {
     }
   }
 
-  const systemPrompt = buildSystemPrompt({ locationMeta, weather, news });
+  const systemPrompt = buildSystemPrompt({
+    latitude,
+    longitude,
+    locationMeta,
+    weather,
+    news
+  });
   const history = toOpenRouterHistory(payload.history);
+
+  console.log("Context before OpenRouter:", {
+    latitude,
+    longitude,
+    locationMeta,
+    weather,
+    newsCount: news.length,
+    hasCoordinates
+  });
 
   const openRouterBody = {
     model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,

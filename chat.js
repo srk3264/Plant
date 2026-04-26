@@ -94,6 +94,8 @@ function detectLocation() {
 }
 
 async function sendToBackend(userMessage) {
+  console.log("Sending location to backend:", APP_CONTEXT.location || "unavailable");
+
   const response = await fetch("/.netlify/functions/chat", {
     method: "POST",
     headers: {
