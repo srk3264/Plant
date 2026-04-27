@@ -19,14 +19,12 @@ const SIMILARITY_THRESHOLD = 0.72;
 const SIMILARITY_MARGIN_THRESHOLD = 0.03;
 const SIMILARITY_CONFIRM_WINDOW = 4;
 const SIMILARITY_CONFIRM_MIN_HITS = 3;
-const FORCE_ENABLE_AFTER_MS = 9000;
 
 let mobileNetModel = null;
 let detectorReady = false;
 let detectInFlight = false;
 let lastSimilarityLogKey = "";
 const similarityRecentHits = [];
-let detectionStartedAt = 0;
 const positiveReferenceEmbeddings = [];
 const negativeReferenceEmbeddings = [];
 
@@ -85,7 +83,6 @@ async function startCamera() {
     setDetectStatus("Loading AI models...");
     await loadModels();
     setDetectStatus("Scanning for tree trunk...");
-    detectionStartedAt = Date.now();
     window.setInterval(runDetection, DETECTION_INTERVAL_MS);
   } catch (error) {
     console.error("Camera access failed:", error);
@@ -219,14 +216,8 @@ async function runDetection() {
 
   try {
     if (!positiveReferenceEmbeddings.length) {
-      const elapsedMs = detectionStartedAt ? Date.now() - detectionStartedAt : 0;
-      if (elapsedMs >= FORCE_ENABLE_AFTER_MS) {
-        setBubbleReady(true);
-        setDetectStatus("Tree references unavailable. Continue to chat.");
-      } else {
-        setBubbleReady(false);
-        setDetectStatus("Loading tree references...");
-      }
+      setBubbleReady(false);
+      setDetectStatus("Loading tree references...");
       return;
     }
 
@@ -251,13 +242,7 @@ async function runDetection() {
     if (similarity.confirmed) {
       setDetectStatus(`Tree trunk detected (${Math.round(similarity.bestPositiveSimilarity * 100)}% match)`);
     } else {
-      const elapsedMs = detectionStartedAt ? Date.now() - detectionStartedAt : 0;
-      if (elapsedMs >= FORCE_ENABLE_AFTER_MS) {
-        setBubbleReady(true);
-        setDetectStatus("Tree not confirmed. Continue to chat.");
-      } else {
-        setDetectStatus(`Scanning for tree trunk... (${Math.round(similarity.bestPositiveSimilarity * 100)}% match)`);
-      }
+      setDetectStatus(`Scanning for tree trunk... (${Math.round(similarity.bestPositiveSimilarity * 100)}% match)`);
     }
   } catch (error) {
     console.error("Detection failed:", error);
