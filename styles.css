@@ -374,3 +374,43 @@ body {
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+@media (min-width: 768px) {
+  body:not(.chat-page) {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    background: #e8e2d2;
+    overflow: hidden;
+  }
+
+  .screen {
+    width: min(402px, calc(100vw - 32px));
+    height: min(874px, calc(100vh - 32px));
+    min-height: 0;
+    border-radius: 32px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  }
+
+  .chat-page {
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    padding: 16px;
+    background: #e8e2d2;
+    overflow: hidden;
+  }
+
+  .chat-screen {
+    width: min(402px, calc(100vw - 32px));
+    height: min(874px, calc(100vh - 32px));
+    min-height: 0;
+    border-radius: 32px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: #ffffff;
+    overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  }
+}

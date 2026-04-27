@@ -45,7 +45,10 @@ function updateScale() {
   const artboardHeight = 874;
   const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
   const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-  const scale = Math.min(1, viewportWidth / artboardWidth, viewportHeight / artboardHeight);
+  const screenContainer = document.querySelector(".screen");
+  const availableWidth = screenContainer ? screenContainer.clientWidth : viewportWidth;
+  const availableHeight = screenContainer ? screenContainer.clientHeight : viewportHeight;
+  const scale = Math.min(1, availableWidth / artboardWidth, availableHeight / artboardHeight);
   document.documentElement.style.setProperty("--artboard-scale", String(scale));
 }
 
