@@ -3,23 +3,32 @@ const cameraFallback = document.getElementById("cameraFallback");
 const chatBubble = document.getElementById("chatBubble");
 const detectStatus = document.getElementById("detectStatus");
 
-const DETECTION_INTERVAL_MS = 600;
-const YOLO_MIN_CONFIDENCE = 0.3;
-const TREE_KEYWORDS = /(tree|trunk|bark|forest|woodland|wood|timber|stump|log|branch|palm|birch|oak|maple|conifer|pine|spruce|cedar|willow)/i;
-const MOBILE_NET_MIN_CONFIDENCE = 0.2;
-const MOBILE_CONFIRM_WINDOW = 3;
-const MOBILE_CONFIRM_MIN_HITS = 2;
+const DETECTION_INTERVAL_MS = 700;
+const POSITIVE_REFERENCE_IMAGE_URLS = [
+  "./assets/reference/tree-ref-1.jpg",
+  "./assets/reference/tree-ref-2.jpg",
+  "./assets/reference/tree-ref-3.jpg",
+  "./assets/reference/tree-ref-4.jpg",
+  "./assets/reference/tree-ref-5.jpg",
+  "./assets/reference/tree-ref-6.jpg",
+  "./assets/reference/tree-ref-7.jpg",
+  "./assets/reference/tree-ref-8.jpg"
+];
+const NEGATIVE_REFERENCE_IMAGE_URLS = [];
+const SIMILARITY_THRESHOLD = 0.72;
+const SIMILARITY_MARGIN_THRESHOLD = 0.03;
+const SIMILARITY_CONFIRM_WINDOW = 4;
+const SIMILARITY_CONFIRM_MIN_HITS = 3;
 const FORCE_ENABLE_AFTER_MS = 9000;
 
-const YOLO_PLANT_CLASSES = /(plant|potted|tree|flower|leaf|leaves|branch|wood)/i;
-
-let yoloModel = null;
 let mobileNetModel = null;
 let detectorReady = false;
 let detectInFlight = false;
-let lastDetectionLogKey = "";
-const mobileRecentHits = [];
+let lastSimilarityLogKey = "";
+const similarityRecentHits = [];
 let detectionStartedAt = 0;
+const positiveReferenceEmbeddings = [];
+const negativeReferenceEmbeddings = [];
 
 function setDetectStatus(message) {
   if (detectStatus) {
@@ -89,44 +98,113 @@ async function loadModels() {
     return;
   }
 
-  try {
-    if (window.YOLO) {
-      yoloModel = new window.YOLO();
-      await yoloModel.load();
-    } else {
-      console.warn("YOLO library missing on window; using MobileNet-only fallback.");
-    }
-  } catch (error) {
-    console.warn("YOLO model load failed; using MobileNet-only fallback.", error);
-    yoloModel = null;
-  }
-
+  await tf.ready();
   mobileNetModel = await mobilenet.load();
+  await loadReferenceEmbeddings();
   detectorReady = true;
 }
 
-function hasTreeKeywords(results) {
-  const matched = results.some((entry) => {
-    const labels = entry.className.split(",").map((label) => label.trim().toLowerCase());
-    const isTreeLike = labels.some((label) => TREE_KEYWORDS.test(label));
-    return isTreeLike && entry.probability >= MOBILE_NET_MIN_CONFIDENCE;
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.decoding = "async";
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
+    img.src = url;
   });
-
-  mobileRecentHits.push(matched ? 1 : 0);
-  if (mobileRecentHits.length > MOBILE_CONFIRM_WINDOW) {
-    mobileRecentHits.shift();
-  }
-
-  const hitCount = mobileRecentHits.reduce((sum, hit) => sum + hit, 0);
-  return hitCount >= MOBILE_CONFIRM_MIN_HITS;
 }
 
-function hasPlantLikeObject(predictions) {
-  return predictions.some((entry) => {
-    const className = String(entry.class || "").toLowerCase();
-    const score = Number(entry.confidence ?? entry.score ?? 0);
-    return YOLO_PLANT_CLASSES.test(className) && score >= YOLO_MIN_CONFIDENCE;
+async function getNormalizedEmbedding(input) {
+  const embeddingTensor = tf.tidy(() => {
+    const embedding = mobileNetModel.infer(input, true);
+    const flattened = embedding.flatten();
+    const normalized = flattened.div(flattened.norm());
+    return normalized;
   });
+  const values = await embeddingTensor.data();
+  embeddingTensor.dispose();
+  return Float32Array.from(values);
+}
+
+async function loadReferenceEmbeddings() {
+  positiveReferenceEmbeddings.length = 0;
+  negativeReferenceEmbeddings.length = 0;
+
+  for (const imageUrl of POSITIVE_REFERENCE_IMAGE_URLS) {
+    try {
+      const image = await loadImage(imageUrl);
+      const embedding = await getNormalizedEmbedding(image);
+      positiveReferenceEmbeddings.push({ imageUrl, embedding });
+    } catch (error) {
+      console.warn("Positive reference embedding load failed:", imageUrl, error);
+    }
+  }
+
+  for (const imageUrl of NEGATIVE_REFERENCE_IMAGE_URLS) {
+    try {
+      const image = await loadImage(imageUrl);
+      const embedding = await getNormalizedEmbedding(image);
+      negativeReferenceEmbeddings.push({ imageUrl, embedding });
+    } catch (error) {
+      console.warn("Negative reference embedding load failed:", imageUrl, error);
+    }
+  }
+
+  console.log("Reference embeddings loaded:", {
+    positive: positiveReferenceEmbeddings.length,
+    negative: negativeReferenceEmbeddings.length
+  });
+}
+
+function cosineSimilarity(embeddingA, embeddingB) {
+  if (!embeddingA || !embeddingB || embeddingA.length !== embeddingB.length) {
+    return 0;
+  }
+
+  let dot = 0;
+  for (let index = 0; index < embeddingA.length; index += 1) {
+    dot += embeddingA[index] * embeddingB[index];
+  }
+  return dot;
+}
+
+function evaluateSimilarity(frameEmbedding) {
+  let bestPositiveSimilarity = 0;
+  for (const reference of positiveReferenceEmbeddings) {
+    const similarity = cosineSimilarity(frameEmbedding, reference.embedding);
+    if (similarity > bestPositiveSimilarity) {
+      bestPositiveSimilarity = similarity;
+    }
+  }
+
+  let bestNegativeSimilarity = 0;
+  for (const reference of negativeReferenceEmbeddings) {
+    const similarity = cosineSimilarity(frameEmbedding, reference.embedding);
+    if (similarity > bestNegativeSimilarity) {
+      bestNegativeSimilarity = similarity;
+    }
+  }
+
+  const similarityMargin = bestPositiveSimilarity - bestNegativeSimilarity;
+  const positivePass = bestPositiveSimilarity >= SIMILARITY_THRESHOLD;
+  const marginPass = !negativeReferenceEmbeddings.length || similarityMargin >= SIMILARITY_MARGIN_THRESHOLD;
+  const instantMatch = positivePass && marginPass;
+
+  similarityRecentHits.push(instantMatch ? 1 : 0);
+  if (similarityRecentHits.length > SIMILARITY_CONFIRM_WINDOW) {
+    similarityRecentHits.shift();
+  }
+
+  const hitCount = similarityRecentHits.reduce((sum, hit) => sum + hit, 0);
+  return {
+    bestPositiveSimilarity,
+    bestNegativeSimilarity,
+    similarityMargin,
+    instantMatch,
+    confirmed: hitCount >= SIMILARITY_CONFIRM_MIN_HITS,
+    hitCount
+  };
 }
 
 async function runDetection() {
@@ -137,41 +215,45 @@ async function runDetection() {
   detectInFlight = true;
 
   try {
-    let objectPredictions = [];
-    if (yoloModel) {
-      try {
-        objectPredictions = await yoloModel.predict(cameraFeed);
-      } catch (error) {
-        console.warn("YOLO inference failed; falling back to MobileNet.", error);
+    if (!positiveReferenceEmbeddings.length) {
+      const elapsedMs = detectionStartedAt ? Date.now() - detectionStartedAt : 0;
+      if (elapsedMs >= FORCE_ENABLE_AFTER_MS) {
+        setBubbleReady(true);
+        setDetectStatus("Tree references unavailable. Continue to chat.");
+      } else {
+        setBubbleReady(false);
+        setDetectStatus("Loading tree references...");
       }
+      return;
     }
 
-    const imagePredictions = await mobileNetModel.classify(cameraFeed, 5);
+    const frameEmbedding = await getNormalizedEmbedding(cameraFeed);
+    const similarity = evaluateSimilarity(frameEmbedding);
+    const similarityLogKey = `${similarity.bestPositiveSimilarity.toFixed(3)}__${similarity.bestNegativeSimilarity.toFixed(3)}__${similarity.instantMatch}__${similarity.hitCount}`;
 
-    const objectNames = objectPredictions.map((entry) => entry.class);
-    const sceneNames = imagePredictions.map((entry) => entry.className);
-    const logKey = `${objectNames.join("|")}__${sceneNames.join("|")}`;
-
-    if (logKey !== lastDetectionLogKey) {
-      console.log("YOLO objects:", objectNames.length ? objectNames : ["none"]);
-      console.log("MobileNet scene labels:", sceneNames.length ? sceneNames : ["none"]);
-      lastDetectionLogKey = logKey;
+    if (similarityLogKey !== lastSimilarityLogKey) {
+      console.log("Similarity detection:", {
+        bestPositiveSimilarity: Number(similarity.bestPositiveSimilarity.toFixed(3)),
+        bestNegativeSimilarity: Number(similarity.bestNegativeSimilarity.toFixed(3)),
+        threshold: SIMILARITY_THRESHOLD,
+        margin: Number(similarity.similarityMargin.toFixed(3)),
+        marginThreshold: SIMILARITY_MARGIN_THRESHOLD,
+        instantMatch: similarity.instantMatch,
+        hitCount: similarity.hitCount
+      });
+      lastSimilarityLogKey = similarityLogKey;
     }
 
-    const yoloDetected = hasPlantLikeObject(objectPredictions);
-    const mobileDetected = hasTreeKeywords(imagePredictions);
-    const detected = yoloDetected || mobileDetected;
-
-    setBubbleReady(detected);
-    if (detected) {
-      setDetectStatus(yoloDetected ? "Tree trunk detected (YOLO)" : "Tree trunk likely (MobileNet)");
+    setBubbleReady(similarity.confirmed);
+    if (similarity.confirmed) {
+      setDetectStatus(`Tree trunk detected (${Math.round(similarity.bestPositiveSimilarity * 100)}% match)`);
     } else {
       const elapsedMs = detectionStartedAt ? Date.now() - detectionStartedAt : 0;
       if (elapsedMs >= FORCE_ENABLE_AFTER_MS) {
         setBubbleReady(true);
         setDetectStatus("Tree not confirmed. Continue to chat.");
       } else {
-        setDetectStatus("Scanning for tree trunk...");
+        setDetectStatus(`Scanning for tree trunk... (${Math.round(similarity.bestPositiveSimilarity * 100)}% match)`);
       }
     }
   } catch (error) {
