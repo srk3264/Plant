@@ -35,6 +35,10 @@ function setDetectStatus(message) {
 }
 
 function setBubbleReady(isReady) {
+  if (!chatBubble) {
+    return;
+  }
+  chatBubble.hidden = !isReady;
   chatBubble.classList.toggle("ready", isReady);
 }
 
